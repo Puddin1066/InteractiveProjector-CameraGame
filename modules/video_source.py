@@ -1,7 +1,7 @@
-"""Generic OpenCV video source with Reolink/RTSP support.
+"""Generic OpenCV video source for local cameras and Reolink/RTSP streams.
 
-This module intentionally keeps the input contract tiny (`read`, `isOpened`,
-`release`) so it can be passed to the existing calibration functions.
+The input contract stays intentionally tiny (`read`, `isOpened`, `release`) so
+it can be passed to the existing calibration functions.
 """
 
 from __future__ import annotations
@@ -51,13 +51,29 @@ class VideoSource:
     ) -> "VideoSource":
         """Create a source from environment variables.
 
-        REOLINK_RTSP_URL wins when set. Otherwise CAMERA_INDEX is used.
+        SENSOR_MODE controls precedence:
+        - ``local``: force a local camera index (preferred for iPhone/USB webcam)
+        - ``rtsp``: require REOLINK_RTSP_URL
+        - ``auto`` (default): use RTSP when configured, otherwise local camera
         """
+        mode = os.getenv("SENSOR_MODE", "auto").strip().lower()
         rtsp_url = os.getenv("REOLINK_RTSP_URL", "").strip()
-        if rtsp_url:
-            source: VideoInput = rtsp_url
+        camera_index = int(os.getenv("CAMERA_INDEX", str(fallback_camera_index)))
+
+        if mode == "local":
+            source: VideoInput = camera_index
+        elif mode == "rtsp":
+            if not rtsp_url:
+                raise RuntimeError(
+                    "SENSOR_MODE=rtsp requires REOLINK_RTSP_URL to be set"
+                )
+            source = rtsp_url
+        elif mode == "auto":
+            source = rtsp_url if rtsp_url else camera_index
         else:
-            source = int(os.getenv("CAMERA_INDEX", str(fallback_camera_index)))
+            raise RuntimeError(
+                f"Unsupported SENSOR_MODE={mode!r}; use local, rtsp, or auto"
+            )
 
         return VideoSource(
             VideoSourceConfig(
@@ -84,7 +100,9 @@ class VideoSource:
                 cap.release()
                 cap = cv2.VideoCapture(self.config.source)
         else:
-            # Do not force CAP_DSHOW: it is Windows-only and breaks the Mac path.
+            # Do not force CAP_DSHOW: it is Windows-only. On macOS OpenCV uses
+            # AVFoundation, which is the path used by local webcams and, when
+            # exposed to OpenCV by macOS, Continuity Camera/iPhone.
             cap = cv2.VideoCapture(self.config.source)
 
         self.cap = cap
@@ -95,7 +113,7 @@ class VideoSource:
                 self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.config.height)
                 self.cap.set(cv2.CAP_PROP_FPS, self.config.fps)
 
-            # Supported by FFmpeg/GStreamer builds; ignored harmlessly elsewhere.
+            # Supported by some backends; ignored harmlessly elsewhere.
             self.cap.set(cv2.CAP_PROP_BUFFERSIZE, self.config.buffer_size)
 
     def isOpened(self) -> bool:  # noqa: N802 - OpenCV compatibility
