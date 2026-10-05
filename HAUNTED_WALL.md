@@ -1,23 +1,23 @@
 # Haunted Wall: Reolink + projector
 
 This fork adds an experimental looping Halloween installation that uses a
-Reolink RTSP camera as the sensor and an HDMI projector (tested conceptually for
-XGIMI MoGo-class projectors) as the interactive canvas.
+Reolink RTSP camera as the sensor and an HDMI projector (for example an XGIMI
+MoGo) as the interactive canvas.
 
 ## What it does
 
 1. Reads a Reolink RTSP stream through OpenCV.
 2. Uses the existing four-corner calibration to map camera coordinates into
    projector coordinates.
-3. Builds a motion/silhouette mask using OpenCV background subtraction.
-4. Warps that mask into projector space.
-5. Treats overlap between participant motion and a projected ghost as a hit.
-6. Runs continuously with an attract state when nobody is moving.
+3. Runs the existing Ultralytics/YOLO stack with the stock person class.
+4. Maps each detected person's camera bounding polygon into projector space.
+5. Treats overlap between a person and a projected ghost as a hit.
+6. Runs continuously with an attract state when nobody is detected.
 
-This first version intentionally uses broad movement instead of fingertip
-tracking. That is more tolerant of IP-camera latency, works with multiple
-children, and avoids adding another ML dependency before the Reolink stream is
-proven responsive enough.
+The first version intentionally uses broad person/body interaction rather than
+fingertip tracking. That is more tolerant of IP-camera latency, works with more
+than one child, and—critically—does not mistake the projector's own moving
+artwork for participant motion.
 
 ## Hardware
 
@@ -27,7 +27,7 @@ proven responsive enough.
 
 The camera does **not** connect to the projector. The computer is the bridge:
 
-`Reolink -> RTSP -> Mac/OpenCV -> Haunted Wall -> HDMI -> projector`
+`Reolink -> RTSP -> Mac/OpenCV/YOLO -> Haunted Wall -> HDMI -> projector`
 
 ## Reolink setup
 
@@ -41,7 +41,7 @@ model and whether it is routed through a Reolink Home Hub/NVR.
 
 Do not put camera credentials in Git.
 
-## Run
+## First test: camera + projector diagnostic
 
 Install the existing requirements:
 
@@ -51,7 +51,19 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-Export configuration (or use a local launcher that loads `.env`):
+Then export the camera URL and run the diagnostic before starting the game:
+
+```bash
+export REOLINK_RTSP_URL='rtsp://USERNAME:PASSWORD@CAMERA_IP/Preview_01_sub'
+export PROJECTOR_MONITOR_INDEX=1
+python reolink_diagnostic.py
+```
+
+The diagnostic previews the camera, reports delivered frame rate, and lists the
+displays detected by `screeninfo`. If the stream is slow, try the Reolink sub
+stream and Ethernet before changing game code.
+
+## Run Haunted Wall
 
 ```bash
 export REOLINK_RTSP_URL='rtsp://USERNAME:PASSWORD@CAMERA_IP/Preview_01_sub'
@@ -60,10 +72,15 @@ export HAUNTED_WALL_DEBUG=1
 python haunted_wall.py
 ```
 
+`yolov8n.pt` is the default person detector. Ultralytics may download it the
+first time it is used if it is not already cached locally. You can override the
+model with `HAUNTED_WALL_MODEL`.
+
 On first launch the projector displays a bright calibration field. A camera
 window opens on the computer. Click the four corners of the projected area in
-the camera view and confirm the calibration. The repository stores that
-homography in its existing `calibration.json` format.
+the camera view and confirm the calibration. Haunted Wall keeps its own
+`haunted_wall_calibration.json`, separate from the original balloon game's
+calibration.
 
 After calibration, do not move the camera or projector. If either moves, press
 `R` to recalibrate.
@@ -73,30 +90,30 @@ Controls:
 - `ESC`: quit
 - `R`: recalibrate
 
-## Why the game uses motion first
+## Why person detection instead of raw motion
 
-The goal of the first hardware test is to answer one question: **is the Reolink
-RTSP path responsive enough to feel interactive?**
+A naive motion detector sees the animated ghosts, fog and pumpkins projected
+onto the wall as movement. That can make the game trigger itself. A person
+classifier gives the first hardware version a much cleaner sensor signal: the
+projection can animate continuously while interactions are driven by detected
+people.
 
-Broad silhouette/motion collisions tolerate substantially more latency than
-precision fingertip tracking. If this feels good, MediaPipe hand/body tracking
-can be added as a second input provider without changing the projector or
-calibration architecture.
-
-If it feels delayed, use the Reolink sub stream, wire the camera with Ethernet
-if possible, and minimize Wi-Fi hops. If latency remains poor, a USB camera can
-replace the RTSP source without changing the game architecture.
+This is intentionally coarse. A ghost disappears when its projected position
+overlaps a detected participant region. If Reolink latency proves acceptable,
+a later input provider can add MediaPipe hands/pose for swatting, pointing and
+more precise gestures without changing the calibration or projector layers.
 
 ## Tuning
 
 Environment variables:
 
-- `MOTION_THRESHOLD` — binary threshold after background subtraction.
-- `MINIMUM_MOTION_PIXELS` — overlap required to trigger a ghost.
-- `HIT_COOLDOWN_SECONDS` — minimum time between hits.
-- `PROJECTOR_MONITOR_INDEX` — which detected display receives the game.
-- `HAUNTED_WALL_DEBUG=1` — shows input/debug information.
+- `HAUNTED_WALL_MODEL` — Ultralytics model; default `yolov8n.pt`.
+- `PERSON_CONFIDENCE` — person detection threshold; default `0.35`.
+- `DETECT_EVERY_N_FRAMES` — reduce/increase CPU inference frequency; default `2`.
+- `HIT_COOLDOWN_SECONDS` — minimum time between ghost hits; default `0.35`.
+- `PROJECTOR_MONITOR_INDEX` — display receiving the game; usually `1` on a laptop.
+- `HAUNTED_WALL_DEBUG=1` — draws detected participant polygons and sensor status.
 
-The intended first field test is a 10–15 minute session with one and then
-multiple children, watching for false triggers, perceived lag, dead zones, and
-whether the camera can see the complete projected rectangle.
+The intended first field test is one adult, then one child, then multiple
+children. Watch for perceived lag, missed detections, false person detections,
+dead zones, and whether the camera can see the complete projected rectangle.
