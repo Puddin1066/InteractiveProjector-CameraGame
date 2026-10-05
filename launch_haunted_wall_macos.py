@@ -1,11 +1,11 @@
 """One-command macOS launcher for Haunted Wall.
 
-Targets the preferred hardware topology:
+Preferred topology:
     iPhone 14 -> USB/Continuity Camera -> Mac -> HDMI -> XGIMI MoGo 4
 
-The launcher probes local camera indices, chooses the first usable local camera
-unless CAMERA_INDEX is already set, verifies that an external display exists,
-sets the relevant environment variables, and then launches Haunted Wall.
+The launcher probes local cameras, chooses a usable local camera unless
+CAMERA_INDEX is already set, verifies that an external display exists, prepares
+the optional CC0 Halloween art pack, and launches the polished Haunted Wall.
 """
 
 from __future__ import annotations
@@ -14,6 +14,7 @@ import os
 import platform
 import subprocess
 import sys
+from pathlib import Path
 from typing import Optional
 
 import cv2
@@ -21,6 +22,7 @@ from screeninfo import get_monitors
 
 
 MAX_CAMERA_INDEX = int(os.getenv("CAMERA_PROBE_MAX_INDEX", "8"))
+ROOT = Path(__file__).resolve().parent
 
 
 def probe_camera(index: int) -> bool:
@@ -48,19 +50,13 @@ def choose_camera() -> Optional[int]:
             return idx
         raise SystemExit(f"CAMERA_INDEX={idx} could not be opened")
 
-    candidates = []
-    for idx in range(MAX_CAMERA_INDEX + 1):
-        if probe_camera(idx):
-            candidates.append(idx)
-
+    candidates = [idx for idx in range(MAX_CAMERA_INDEX + 1) if probe_camera(idx)]
     if not candidates:
         return None
 
-    # Prefer a non-zero camera when possible. On many Macs camera 0 is the
-    # built-in FaceTime camera while Continuity Camera appears at a later index.
-    if len(candidates) > 1:
-        return candidates[-1]
-    return candidates[0]
+    # On many Macs the built-in FaceTime camera appears first and Continuity
+    # Camera appears later, so prefer the highest usable index when >1 exists.
+    return candidates[-1] if len(candidates) > 1 else candidates[0]
 
 
 def choose_projector() -> Optional[int]:
@@ -69,12 +65,24 @@ def choose_projector() -> Optional[int]:
     if explicit:
         idx = int(explicit)
         return idx if 0 <= idx < len(monitors) else None
+    return 1 if len(monitors) >= 2 else None
 
-    if len(monitors) < 2:
-        return None
 
-    # Prefer the first external display. The built-in Mac display is usually 0.
-    return 1
+def ensure_visual_assets() -> None:
+    required = [
+        ROOT / "assets" / "halloween_cc0" / "graveyard2.png",
+        ROOT / "assets" / "halloween_cc0" / "ghost_sheet.png",
+    ]
+    if all(path.exists() and path.stat().st_size > 0 for path in required):
+        return
+
+    print("Preparing optional CC0 Halloween visuals ...")
+    try:
+        result = subprocess.call([sys.executable, str(ROOT / "prepare_halloween_assets.py")])
+        if result != 0:
+            print("Asset preparation failed; the game will use its procedural fallback.")
+    except Exception as exc:
+        print(f"Could not prepare visual assets ({exc}); using procedural fallback.")
 
 
 def main() -> int:
@@ -93,6 +101,8 @@ def main() -> int:
         print("Connect the MoGo 4 by HDMI and make sure macOS sees it as a second display.")
         return 3
 
+    ensure_visual_assets()
+
     env = os.environ.copy()
     env["SENSOR_MODE"] = "local"
     env["CAMERA_INDEX"] = str(camera_index)
@@ -105,9 +115,10 @@ def main() -> int:
     print(f"  Camera index:    {camera_index}")
     print(f"  Projector index: {projector_index}")
     print("  Sensor mode:     local")
-    print("Launching haunted_wall.py ...")
+    print("  Visual theme:    CC0 graveyard/ghost theme (with fallback)")
+    print("Launching haunted_wall_cc0.py ...")
 
-    return subprocess.call([sys.executable, "haunted_wall.py"], env=env)
+    return subprocess.call([sys.executable, str(ROOT / "haunted_wall_cc0.py")], env=env)
 
 
 if __name__ == "__main__":
