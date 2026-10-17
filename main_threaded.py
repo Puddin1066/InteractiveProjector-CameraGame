@@ -39,6 +39,7 @@ from modules.threaded_game_state import ThreadSafeGameState
 from modules.camera_capture_thread import CameraCaptureThread
 from modules.yolo_inference_thread import YOLOInferenceThread
 from modules.audio_manager_thread import AudioManager
+from modules.video_source import open_local_capture
 
 # Suppress logging
 os.environ["YOLO_VERBOSE"] = "False"
@@ -186,7 +187,7 @@ class ThreadedBalloonGame:
         else:
             print("Performing camera calibration...")
             # Temporary camera for calibration
-            temp_cap = cv2.VideoCapture(CAMERA_INDEX, cv2.CAP_DSHOW)
+            temp_cap = open_local_capture(CAMERA_INDEX)
             if not temp_cap.isOpened():
                 print("Error: Could not open camera for calibration")
                 sys.exit(1)
@@ -401,7 +402,7 @@ class ThreadedBalloonGame:
             self.camera_thread.join(timeout=2.0)
         
         # Perform calibration
-        temp_cap = cv2.VideoCapture(CAMERA_INDEX, cv2.CAP_DSHOW)
+        temp_cap = open_local_capture(CAMERA_INDEX)
         calibration_points = get_calibration_points(temp_cap)
         temp_cap.release()
         

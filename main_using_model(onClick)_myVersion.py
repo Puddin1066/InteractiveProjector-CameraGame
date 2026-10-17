@@ -15,6 +15,7 @@ from modules.calibration import *
 from modules.boom_animation import generate_boom_frames
 from modules.cloud import Cloud
 from modules.pop_score import ScorePopup
+from modules.video_source import open_local_capture
 
 # Suppress Ultralytics logging
 os.environ["YOLO_VERBOSE"] = "False"
@@ -142,7 +143,7 @@ except Exception as e:
     sys.exit(1)
 
 # Initialize camera
-cap = cv2.VideoCapture(CAMERA_INDEX, cv2.CAP_DSHOW)
+cap = open_local_capture(CAMERA_INDEX)
 if not cap.isOpened():
     print("Error: Could not open camera")
     pygame.quit()

@@ -1,11 +1,11 @@
 """One-command macOS launcher for Haunted Wall.
 
-Preferred topology:
-    iPhone 14 -> USB/Continuity Camera -> Mac -> HDMI -> XGIMI MoGo 4
+The sensor is the Mac's built-in camera. It is OpenCV index 0 on a Mac and
+avoids the extra delay of a phone link.
 
-The launcher probes local cameras, chooses a usable local camera unless
-CAMERA_INDEX is already set, verifies that an external display exists, prepares
-the optional CC0 Halloween art pack, and launches the polished Haunted Wall.
+The launcher uses that camera unless CAMERA_INDEX is already set, verifies
+that an external display exists, prepares the optional CC0 Halloween art pack,
+and launches the polished Haunted Wall.
 """
 
 from __future__ import annotations
@@ -39,6 +39,17 @@ def probe_camera(index: int) -> bool:
         cap.release()
 
 
+def prefer_builtin_camera(candidates: list[int]) -> Optional[int]:
+    """Pick the Mac built-in camera.
+
+    OpenCV lists the FaceTime camera first. A later index is usually an
+    iPhone or another attached camera.
+    """
+    if not candidates:
+        return None
+    return candidates[0]
+
+
 def choose_camera() -> Optional[int]:
     explicit = os.getenv("CAMERA_INDEX", "").strip()
     if explicit:
@@ -51,12 +62,7 @@ def choose_camera() -> Optional[int]:
         raise SystemExit(f"CAMERA_INDEX={idx} could not be opened")
 
     candidates = [idx for idx in range(MAX_CAMERA_INDEX + 1) if probe_camera(idx)]
-    if not candidates:
-        return None
-
-    # On many Macs the built-in FaceTime camera appears first and Continuity
-    # Camera appears later, so prefer the highest usable index when >1 exists.
-    return candidates[-1] if len(candidates) > 1 else candidates[0]
+    return prefer_builtin_camera(candidates)
 
 
 def choose_projector() -> Optional[int]:
@@ -92,7 +98,8 @@ def main() -> int:
     camera_index = choose_camera()
     if camera_index is None:
         print("No usable local camera found.")
-        print("Connect/unlock the iPhone, enable Continuity Camera, then run camera_probe.py.")
+        print("Allow Camera access for Terminal, then run camera_probe.py.")
+        print("The Mac built-in camera is index 0.")
         return 2
 
     projector_index = choose_projector()
@@ -111,8 +118,9 @@ def main() -> int:
     env.setdefault("CAMERA_HEIGHT", "720")
     env.setdefault("CAMERA_FPS", "30")
 
+    sensor_name = "Mac built-in camera" if camera_index == 0 else "selected local camera"
     print("Haunted Wall hardware selection")
-    print(f"  Camera index:    {camera_index}")
+    print(f"  Sensor:          {sensor_name}, index {camera_index}")
     print(f"  Projector index: {projector_index}")
     print("  Sensor mode:     local")
     print("  Visual theme:    CC0 graveyard/ghost theme (with fallback)")

@@ -8,6 +8,7 @@ import queue
 import time
 from typing import Optional
 from .threaded_game_state import ThreadSafeGameState
+from .video_source import open_local_capture
 
 
 class CameraCaptureThread(threading.Thread):
@@ -37,7 +38,7 @@ class CameraCaptureThread(threading.Thread):
         self.running = True
         
         # Initialize camera
-        self.cap = cv2.VideoCapture(self.camera_index, cv2.CAP_DSHOW)
+        self.cap = open_local_capture(self.camera_index)
         if not self.cap.isOpened():
             raise RuntimeError(f"Error: Could not open camera {self.camera_index}")
         

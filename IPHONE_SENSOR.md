@@ -1,4 +1,19 @@
-# iPhone sensor setup (preferred)
+# Camera sensor
+
+The interactive platform uses the Mac’s built-in camera. That is OpenCV index 0, read directly by OpenCV, which is the lowest-latency sensor available here.
+
+```bash
+export SENSOR_MODE=local
+export CAMERA_INDEX=0
+export PROJECTOR_MONITOR_INDEX=1
+python haunted_wall.py
+```
+
+`python launch_haunted_wall_macos.py` selects that same built-in camera. Point the laptop so the FaceTime camera sees the whole image on the MoGo 4, then click the four corners of that image in the camera window and press `c`.
+
+An iPhone 14 can still be the sensor through Continuity Camera when the laptop camera cannot see the wall. That setup is below. It adds a wireless hop, so it is the fallback rather than the default.
+
+# iPhone sensor setup
 
 For the Halloween Haunted Wall, a local camera is preferred over the Reolink RTSP path because it avoids network buffering and gives the vision stack a cleaner, lower-latency feed.
 

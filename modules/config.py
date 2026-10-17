@@ -23,8 +23,9 @@ CLICK_COOLDOWN = 0.5  # seconds between clicks
 CONF_THRESHOLD = 0.5
 IOU_THRESHOLD = 0.7
 
-# Camera
-CAMERA_INDEX = 1
+# Camera. Index 0 is the Mac built-in FaceTime camera. Set CAMERA_INDEX to
+# choose a different local device.
+CAMERA_INDEX = int(os.getenv("CAMERA_INDEX", "0"))
 CAMERA_WIDTH = 720
 CAMERA_HEIGHT = 480
 CAMERA_FPS = 30
