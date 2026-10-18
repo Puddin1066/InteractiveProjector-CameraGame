@@ -44,7 +44,11 @@ from modules.video_source import open_local_capture
 # Suppress logging
 os.environ["YOLO_VERBOSE"] = "False"
 logging.getLogger('ultralytics').setLevel(logging.CRITICAL)
-cv2.setLogLevel(0)
+_cv_logging = getattr(getattr(cv2, "utils", None), "logging", None)
+if _cv_logging is not None and hasattr(_cv_logging, "setLogLevel"):
+    _cv_logging.setLogLevel(getattr(_cv_logging, "LOG_LEVEL_SILENT", 0))
+elif hasattr(cv2, "setLogLevel"):
+    cv2.setLogLevel(0)
 
 # Constants (config-driven)
 SCREEN_WIDTH = config.SCREEN_WIDTH
@@ -92,13 +96,24 @@ class ThreadedBalloonGame:
         os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "hide"
         pygame.init()
         
-        # Setup external monitor (projector)
+        # The balloon window is the HDMI picture. Display 1 is the projector.
         monitors = get_monitors()
-        if len(monitors) < 2:
-            print("Error: External monitor (projector) not detected")
+        requested = int(os.getenv("PROJECTOR_MONITOR_INDEX", "1"))
+        if requested < 0 or requested >= len(monitors):
+            print(
+                f"HDMI projector display {requested} is not connected. "
+                f"Detected {len(monitors)} display(s)."
+            )
+            print("Connect the MoGo over HDMI. The balloons are drawn on that display.")
+            for index, monitor in enumerate(monitors):
+                name = getattr(monitor, "name", "") or "display"
+                print(f"  Display {index}: {name} {monitor.width}x{monitor.height}")
             sys.exit(1)
-        
-        self.external_screen = monitors[1]
+        self.external_screen = monitors[requested]
+        print(
+            f"HDMI projector display {requested}: "
+            f"{self.external_screen.width}x{self.external_screen.height}"
+        )
         os.environ['SDL_VIDEO_WINDOW_POS'] = f"{self.external_screen.x},{self.external_screen.y}"
         
         self.screen = pygame.display.set_mode(
@@ -186,28 +201,38 @@ class ThreadedBalloonGame:
             self.debug_offset_x, self.debug_offset_y = debug_offset_x, debug_offset_y
         else:
             print("Performing camera calibration...")
-            # Temporary camera for calibration
             temp_cap = open_local_capture(CAMERA_INDEX)
             if not temp_cap.isOpened():
-                print("Error: Could not open camera for calibration")
-                sys.exit(1)
-                
+                temp_cap.release()
+                print("No camera is connected. Opening the balloons on this screen.")
+                self._use_fullscreen_calibration()
+                return
+
             calibration_points = get_calibration_points(temp_cap)
             temp_cap.release()
-            
+
             if calibration_points and len(calibration_points) == 4:
                 self.offset_x, self.offset_y = 0, 0
                 self.debug_offset_x, self.debug_offset_y = 0, 0
-                save_calibration_points(calibration_points, self.offset_x, self.offset_y, 
+                save_calibration_points(calibration_points, self.offset_x, self.offset_y,
                                       self.debug_offset_x, self.debug_offset_y)
                 self.transform_matrix = get_perspective_transform(
                     calibration_points, self.external_screen.width, self.external_screen.height, 0, 0
                 )
-                self.inv_transform_matrix = np.linalg.inv(self.transform_matrix)  # For manual clicks
+                self.inv_transform_matrix = np.linalg.inv(self.transform_matrix)
             else:
                 print("Error: Calibration failed")
                 sys.exit(1)
-    
+
+    def _use_fullscreen_calibration(self) -> None:
+        width = self.external_screen.width
+        height = self.external_screen.height
+        corners = [[0, 0], [width - 1, 0], [width - 1, height - 1], [0, height - 1]]
+        self.offset_x, self.offset_y = 0, 0
+        self.debug_offset_x, self.debug_offset_y = 0, 0
+        self.transform_matrix = get_perspective_transform(corners, width, height, 0, 0)
+        self.inv_transform_matrix = np.linalg.inv(self.transform_matrix)
+
     def _init_game_objects(self):
         """Initialize game objects and UI elements"""
         # Fonts
@@ -248,24 +273,29 @@ class ThreadedBalloonGame:
     def start_threads(self):
         """Start all worker threads"""
         try:
-            # Start camera thread
-            self.camera_thread = CameraCaptureThread(CAMERA_INDEX, self.game_state)
-            self.camera_thread.start()
-            print("Camera thread started")
-            
-            # Start YOLO inference thread
-            self.yolo_thread = YOLOInferenceThread(
-                MODEL_PATH, self.game_state, CONF_THRESHOLD, IOU_THRESHOLD,
-                self.transform_matrix, self.debug_offset_x, self.debug_offset_y
-            )
-            self.yolo_thread.start()
-            print("YOLO inference thread started")
-            
-            # Start audio manager thread
-            self.audio_thread = AudioManager(self.game_state, BASE_DIR)
-            self.audio_thread.start()
-            print("Audio manager thread started")
-            
+            try:
+                self.camera_thread = CameraCaptureThread(CAMERA_INDEX, self.game_state)
+                self.camera_thread.start()
+                print("Camera thread started")
+                self.yolo_thread = YOLOInferenceThread(
+                    MODEL_PATH, self.game_state, CONF_THRESHOLD, IOU_THRESHOLD,
+                    self.transform_matrix, self.debug_offset_x, self.debug_offset_y
+                )
+                self.yolo_thread.start()
+                print("YOLO inference thread started")
+            except Exception as camera_error:
+                self.camera_thread = None
+                self.yolo_thread = None
+                print(f"Camera unavailable: {camera_error}")
+
+            try:
+                self.audio_thread = AudioManager(self.game_state, BASE_DIR)
+                self.audio_thread.start()
+                print("Audio manager thread started")
+            except Exception as audio_error:
+                self.audio_thread = None
+                print(f"Audio unavailable: {audio_error}")
+
             return True
             
         except Exception as e:
@@ -323,7 +353,8 @@ class ThreadedBalloonGame:
         for balloon in self.balloons[:]:
             if balloon.is_clicked((x, y)):
                 balloon.popped = True
-                self.audio_thread.play_pop_sound()
+                if self.audio_thread:
+                    self.audio_thread.play_pop_sound()
                 
                 self.cracks.append(CrackEffect(x, y, self.boom_frames))
                 self.balloons.remove(balloon)
@@ -335,7 +366,8 @@ class ThreadedBalloonGame:
         
         if not clicked:
             self.misses.append(MissEffect(x, y, self.miss_frames))
-            self.audio_thread.play_miss_sound()
+            if self.audio_thread:
+                self.audio_thread.play_miss_sound()
     
     def handle_events(self):
         """Handle Pygame events"""
@@ -638,9 +670,9 @@ class ThreadedBalloonGame:
         """Render debug window showing camera feed with detections (like original)"""
         # Get latest frame from camera thread
         frame_data = self.game_state.get_current_frame()
-        if frame_data is None:
+        if not frame_data or frame_data[0] is None or getattr(frame_data[0], "size", 0) == 0:
             return
-        
+
         frame, timestamp = frame_data
         
         # Apply perspective transform like original

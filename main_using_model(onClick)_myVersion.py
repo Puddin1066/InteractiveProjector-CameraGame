@@ -21,8 +21,12 @@ from modules.video_source import open_local_capture
 os.environ["YOLO_VERBOSE"] = "False"
 logging.getLogger('ultralytics').setLevel(logging.CRITICAL)
 
-# Suppress OpenCV logging
-cv2.setLogLevel(0)
+# Suppress OpenCV logging. OpenCV 5 moved this off cv2.setLogLevel.
+_cv_logging = getattr(getattr(cv2, "utils", None), "logging", None)
+if _cv_logging is not None and hasattr(_cv_logging, "setLogLevel"):
+    _cv_logging.setLogLevel(getattr(_cv_logging, "LOG_LEVEL_SILENT", 0))
+elif hasattr(cv2, "setLogLevel"):
+    cv2.setLogLevel(0)
 
 # Constants
 SCREEN_WIDTH = 1360
