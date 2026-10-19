@@ -7,7 +7,9 @@ import threading
 import queue
 import time
 from typing import Optional
+from . import config
 from .threaded_game_state import ThreadSafeGameState
+from .video_source import open_local_capture
 
 
 class CameraCaptureThread(threading.Thread):
@@ -17,7 +19,8 @@ class CameraCaptureThread(threading.Thread):
     """
     
     def __init__(self, camera_index: int, game_state: ThreadSafeGameState,
-                 width: int = 720, height: int = 480, target_fps: int = 30):
+                 width: int = config.CAMERA_WIDTH, height: int = config.CAMERA_HEIGHT,
+                 target_fps: int = config.CAMERA_FPS):
         super().__init__(name="CameraCapture")
         self.daemon = True  # Dies when main thread dies
         
@@ -37,14 +40,9 @@ class CameraCaptureThread(threading.Thread):
         self.running = True
         
         # Initialize camera
-        self.cap = cv2.VideoCapture(self.camera_index, cv2.CAP_DSHOW)
+        self.cap = open_local_capture(self.camera_index, width, height, target_fps)
         if not self.cap.isOpened():
             raise RuntimeError(f"Error: Could not open camera {self.camera_index}")
-        
-        # Configure camera settings
-        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
-        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height) 
-        self.cap.set(cv2.CAP_PROP_FPS, target_fps)
         
         # Verify settings
         actual_width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))

@@ -2,8 +2,21 @@
 import cv2
 import numpy as np
 import time, json
+from dataclasses import dataclass
+from typing import List, Optional, Tuple
 
 from .config import SCREEN_WIDTH, SCREEN_HEIGHT, CALIBRATION_FILE
+from .video_source import open_local_capture
+
+MAX_FAILED_READS = 60  # ~3 s of consecutive failed camera reads
+
+
+@dataclass(frozen=True)
+class Calibration:
+    """Projector corners as clicked in a camera frame of the recorded size."""
+    points: List[List[float]]
+    frame_width: int
+    frame_height: int
 
 def order_points(pts):
     pts = np.array(pts, dtype=np.float32)
@@ -41,6 +54,26 @@ def validate_quadrilateral(points):
     return True, "Valid quadrilateral"
 
 def get_calibration_points(cap, window_name="Calibration"):
+    points, _ = _run_calibration(cap, window_name)
+    return points
+
+def calibrate_camera(camera_index: int, width: int, height: int) -> Optional[Calibration]:
+    """Interactive four-corner calibration on the given camera. The projection
+    should be bright so the corners are visible."""
+    cap = open_local_capture(camera_index, width, height)
+    try:
+        return get_calibration(cap) if cap.isOpened() else None
+    finally:
+        cap.release()
+
+
+def get_calibration(cap, window_name="Calibration") -> Optional[Calibration]:
+    points, frame_size = _run_calibration(cap, window_name)
+    if not points:
+        return None
+    return Calibration(points, *frame_size)
+
+def _run_calibration(cap, window_name) -> Tuple[Optional[list], Optional[Tuple[int, int]]]:
     points = []
     selected_point = -1
     dragging = False
@@ -70,11 +103,18 @@ def get_calibration_points(cap, window_name="Calibration"):
     print("3. Drag points to adjust")
     print("4. Points will be ordered: top-left, top-right, bottom-right, bottom-left")
     print("5. Press 'r' to reset, 'c' to confirm, 'q' to quit")
+    failed_reads = 0
     while True:
         ret, frame = cap.read()
         if not ret:
-            print("Error: Could not read frame during calibration")
-            return None
+            # Cameras can drop the first frames while they start up.
+            failed_reads += 1
+            if failed_reads > MAX_FAILED_READS:
+                print("Error: Could not read frame during calibration")
+                return None, None
+            time.sleep(0.05)
+            continue
+        failed_reads = 0
         display_frame = frame.copy()
         height, width = display_frame.shape[:2]
         for i in range(0, width, 50):
@@ -111,7 +151,7 @@ def get_calibration_points(cap, window_name="Calibration"):
         key = cv2.waitKey(1) & 0xFF
         if key == ord('q'):
             cv2.destroyWindow(window_name)
-            return None
+            return None, None
         elif key == ord('r'):
             points = []
             print("Points reset")
@@ -120,11 +160,32 @@ def get_calibration_points(cap, window_name="Calibration"):
                 is_valid, message = validate_quadrilateral(points)
                 if is_valid:
                     cv2.destroyWindow(window_name)
-                    return order_points(points).tolist()
+                    return order_points(points).tolist(), (width, height)
                 else:
                     print(f"Cannot confirm: {message}")
 
-def save_calibration_points(points, offset_x=0, offset_y=0, debug_offset_x=0, debug_offset_y=0, filename=CALIBRATION_FILE):
+def save_calibration(calibration: Calibration, filename=CALIBRATION_FILE):
+    save_calibration_points(
+        calibration.points,
+        filename=filename,
+        frame_size=(calibration.frame_width, calibration.frame_height),
+    )
+
+def load_calibration(filename=CALIBRATION_FILE) -> Optional[Calibration]:
+    """Load a calibration that records its camera frame size, else None."""
+    points, *_ = load_calibration_points(filename)
+    if not points or len(points) != 4:
+        return None
+    try:
+        with open(filename, 'r') as f:
+            data = json.load(f)
+        return Calibration(points, int(data['frame_width']), int(data['frame_height']))
+    except (KeyError, TypeError, ValueError):
+        print("Calibration has no camera frame size. Recalibrating.")
+        return None
+
+def save_calibration_points(points, offset_x=0, offset_y=0, debug_offset_x=0, debug_offset_y=0,
+                            filename=CALIBRATION_FILE, frame_size=None):
     try:
         calibration_data = {
             'points': points,
@@ -137,6 +198,8 @@ def save_calibration_points(points, offset_x=0, offset_y=0, debug_offset_x=0, de
             'timestamp': time.time(),
             'version': '2.2'
         }
+        if frame_size:
+            calibration_data['frame_width'], calibration_data['frame_height'] = frame_size
         with open(filename, 'w') as f:
             json.dump(calibration_data, f, indent=2)
         print(f"Calibration saved to {filename} with homography offset ({offset_x}, {offset_y}) and debug offset ({debug_offset_x}, {debug_offset_y})")

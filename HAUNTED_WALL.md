@@ -56,7 +56,7 @@ Then export the camera URL and run the diagnostic before starting the game:
 ```bash
 export REOLINK_RTSP_URL='rtsp://USERNAME:PASSWORD@CAMERA_IP/Preview_01_sub'
 export PROJECTOR_MONITOR_INDEX=1
-python reolink_diagnostic.py
+python3 -m tools.reolink_diagnostic
 ```
 
 The diagnostic previews the camera, reports delivered frame rate, and lists the
@@ -69,7 +69,7 @@ stream and Ethernet before changing game code.
 export REOLINK_RTSP_URL='rtsp://USERNAME:PASSWORD@CAMERA_IP/Preview_01_sub'
 export PROJECTOR_MONITOR_INDEX=1
 export HAUNTED_WALL_DEBUG=1
-python haunted_wall.py
+python3 play.py haunted-wall
 ```
 
 `yolov8n.pt` is the default person detector. Ultralytics may download it the

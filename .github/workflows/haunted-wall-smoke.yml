@@ -14,4 +14,4 @@ jobs:
         with:
           python-version: '3.11'
       - name: Parse Haunted Wall entry points
-        run: python smoke_test_haunted_wall.py
+        run: python tests/smoke_test_haunted_wall.py

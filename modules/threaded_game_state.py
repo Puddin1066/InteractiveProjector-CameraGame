@@ -5,7 +5,7 @@ Handles shared data between multiple threads with proper synchronization.
 import threading
 import time
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from queue import Queue, Empty
 
 
@@ -40,6 +40,7 @@ class ThreadSafeGameState:
         # Detection results
         self._detection_queue = Queue(maxsize=5)  # Buffer recent detections
         self.latest_detection: Optional[DetectionResult] = None
+        self._pointers: List[DetectionResult] = []
 
         # Click cooldown state
         self.last_click_time = 0
@@ -107,6 +108,21 @@ class ThreadSafeGameState:
                     break
         return detections
     
+    def update_pointers(self, pointers: List[Tuple[float, float, float]]):
+        """Replace the tracked pointers with this frame's (x, y, confidence) list."""
+        now = time.time()
+        snapshot = [DetectionResult(x, y, confidence, now) for x, y, confidence in pointers]
+        with self._detection_lock:
+            self._pointers = snapshot
+            if snapshot:
+                self.latest_detection = snapshot[0]
+
+    def get_pointers(self, max_age=0.2) -> List[DetectionResult]:
+        """Screen-space pointers from the latest tracked frame, if recent enough."""
+        now = time.time()
+        with self._detection_lock:
+            return [p for p in self._pointers if now - p.timestamp < max_age]
+
     def has_recent_detection(self, max_age=0.1) -> bool:
         """Check if we have a recent detection"""
         with self._detection_lock:
@@ -182,6 +198,8 @@ class ThreadSafeGameState:
             self._start_time = 0
             self.last_click_time = 0
 
+        with self._detection_lock:
+            self._pointers = []
             # Clear detection queue
             while not self._detection_queue.empty():
                 try:
