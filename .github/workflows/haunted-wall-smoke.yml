@@ -1,9 +1,12 @@
-name: Haunted Wall smoke
+name: Smoke checks
 
 on:
   push:
     branches: [main]
   pull_request:
+
+permissions:
+  contents: read
 
 jobs:
   smoke:
@@ -13,5 +16,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      - name: Compile every Python file
+        run: python -m compileall -q play.py games modules tools tests datapreprocessing
       - name: Parse Haunted Wall entry points
         run: python tests/smoke_test_haunted_wall.py

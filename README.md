@@ -1,391 +1,221 @@
 # Interactive Projector Camera Game
 
-[![Python](https://img.shields.io/badge/Python-3.8%2B-blue.svg)](https://python.org)
-[![OpenCV](https://img.shields.io/badge/OpenCV-4.8%2B-green.svg)](https://opencv.org)
-[![YOLO](https://img.shields.io/badge/YOLO-v8-red.svg)](https://ultralytics.com)
-[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Smoke checks](https://github.com/Puddin1066/InteractiveProjector-CameraGame/actions/workflows/haunted-wall-smoke.yml/badge.svg)](https://github.com/Puddin1066/InteractiveProjector-CameraGame/actions/workflows/haunted-wall-smoke.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-blue.svg)](https://www.python.org)
 
-An interactive balloon-popping game that combines computer vision, object detection, and projection mapping to create an immersive augmented reality gaming experience. Players interact with projected balloons using physical gestures detected by a camera system.
+Party games you play with your hands on a wall. A projector throws the game
+onto a wall, a camera watches the players, and a pose model turns their hands
+into blades and pointers: no controllers, no touch screen. It started as a
+balloon-popping game and now includes a set of Lincoln Lynx Halloween games
+for groups of kids, such as **Midnight Slash**, a Fruit Ninja-style game for
+up to five players at once.
 
-## Overview
+![Balloon Pop demo](BalloonPopDemo.gif)
 
-This application creates an interactive gaming environment where:
-- **Real-world gestures** are detected using computer vision (YOLO object detection)
-- **Virtual balloons** are projected onto surfaces and respond to physical interactions
-- **Multi-threaded architecture** ensures smooth gameplay at 90 FPS
-- **Calibration system** maps camera coordinates to projection coordinates
-- **Audio-visual effects** provide immersive feedback
+## What this solves
 
-### Key Features
+Turning a blank wall into a game usually takes special hardware, such as depth
+cameras, touch foils or controllers. This project needs only what most people
+already have: a laptop, any camera (the built-in one, a USB webcam, an iPhone
+through Continuity Camera, or an RTSP security camera) and a projector or big
+screen. One launcher starts every game and remembers your camera and
+projector.
 
-- **Interactive Gameplay**: Touch/point at projected balloons to pop them
-- **Computer Vision**: YOLO-based object detection for gesture recognition
-- **Multi-Monitor Support**: Dedicated projector/external display support
-- **Multi-Threaded**: Parallel processing for optimal performance
-- **Rich Graphics**: Animated balloons, clouds, day/night cycles
-- **Spatial Audio**: Sound effects with positional feedback
-- **Auto-Calibration**: Camera-to-projector coordinate mapping
+## Who it is for
 
-### Project Demonstration
+- Parents, teachers and party hosts who want a big-screen game kids play with
+  their whole bodies, for example at a school Halloween night.
+- Tinkerers learning computer vision: camera-to-projector calibration, pose
+  and segmentation models, and keeping a game smooth with threads.
 
-![Game Demo](BalloonPopDemo.gif)
+## Why it matters
 
-## Architecture
+Five kids can play together in front of one wall, take three-minute turns and
+hand over to the next group. Nobody has to hold or share a device, and the
+setup packs into a backpack.
 
-### Threading Model
+## Games
 
-The application uses a **4-thread architecture** for optimal performance:
+| Command | Game | How you play |
+|---|---|---|
+| `python3 play.py midnight-slash` | Midnight Slash | Spookier Spooky Slash: 3-minute team rounds that speed up, "Witching Hour" bursts, a witch-hat Lynx mascot |
+| `python3 play.py spooky-slash` | Spooky Slash | Fruit Ninja on the wall, sliced by up to five kids' hands; the players appear cut out inside the scene |
+| `python3 play.py pumpkin-slash` | Pumpkin Slash | Two teams slice pumpkins; the camera faces the players |
+| `python3 play.py pong` | Halloween Pong | Raise a hand on your half of the wall to move your paddle |
+| `python3 play.py haunted-wall` | Haunted Wall | Tag the ghosts drifting across the wall ([details](HAUNTED_WALL.md)) |
+| `python3 play.py balloon-pop` | Balloon Pop | The original game: point at balloons to pop them before time runs out |
 
-![Threading Architecture](Threading_Architecture_Diagram.png)
+## How it works
 
-*Figure 1: Multi-threaded architecture showing parallel processing of camera capture, YOLO inference, game logic, and audio management.*
-
-### Core Components
-
-| Component | Description | Technology |
-|-----------|-------------|------------|
-| **Game Engine** | Main game loop, physics, rendering | Pygame |
-| **Computer Vision** | Object detection and tracking | OpenCV + YOLO |
-| **Threading** | Parallel processing coordination | Python Threading |
-| **Calibration** | Camera-projector coordinate mapping | Perspective Transformation |
-| **Audio System** | Sound effects and audio feedback | Pygame Mixer |
-| **Graphics** | Sprite animations and visual effects | Pygame + PIL |
-
-## Quick Start
-
-### Prerequisites
-
-- **Python 3.8+**
-- **Camera** (USB/built-in webcam)
-- **Projector or external monitor**
-- **Windows/Linux/macOS**
-
-### Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/Jitenrai21/InteractiveProjector-CameraGame.git
-   cd InteractiveProjector-CameraGame
-   ```
-
-2. **Install dependencies**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. **Download YOLO model** (if not included)
-   ```bash
-   # The best.onnx model should be in the models/ directory
-   # If missing, train your own or use a pre-trained model
-   ```
-
-4. **Play**
-   ```bash
-   python3 play.py                 # list the games
-   python3 play.py spooky-slash    # start one
-   python3 play.py midnight-slash  # the spookier version: 3-minute team rounds that speed up
-   ```
-   Midnight Slash is a theme over Spooky Slash: `web/midnight_slash` holds only what differs (art, sounds, round
-   rules) and everything else comes from `web/spooky_slash`. Rebuild its art and sounds with
-   `python -m tools.make_midnight_slash_art` and `python -m tools.make_midnight_slash_sounds`, and check it without a
-   camera with `python tests/mock_test_midnight_slash.py` (a mock: scripted swipes, headless Chrome).
-   The first time, say which camera and projector to use; they are remembered in `.env`:
-   ```bash
-   python3 play.py spooky-slash --camera 1 --projector 1
-   ```
-   `python3 -m tools.camera_probe` lists the cameras (0 is the Mac's built-in camera; an iPhone is usually 1).
-
-### First-Time Setup
-
-1. **Camera Calibration**: On first run, the system will guide you through camera calibration
-2. **Monitor Configuration**: Ensure your projector/external monitor is connected
-3. **Test Detection**: Verify that hand/object detection works in your environment
-
-## 🎮 How to Play
-
-### Game Modes
-
-1. **Start Screen**: Tap anywhere or show gesture to camera to begin
-2. **Main Game**: Pop balloons by pointing/touching the projected areas
-3. **Game Over**: View your score and restart
-
-### Controls
-
-| Input | Action |
-|-------|--------|
-| **Physical Gesture** | Point at balloons to pop them |
-| **Mouse Click** | Alternative input method |
-| **C Key** | Recalibrate camera |
-| **D Key** | Toggle debug overlay |
-| **Q Key** | Quit game |
-| **R Key** | Restart (game over screen) |
-
-### Scoring
-
-- **+1 Point** per balloon popped
-- **Miss Penalty** for clicking empty areas
-- **Time Limit** of 120 seconds
-- **Day/Night Cycle** affects difficulty
-
-## Technical Details
-
-### Dependencies
-
-```python
-opencv-python>=4.8.0    # Computer vision and camera handling
-pygame>=2.5.0           # Game engine and graphics
-ultralytics>=8.0.0      # YOLO object detection
-pyautogui>=0.9.54      # Mouse automation for clicks
-screeninfo>=0.8.1      # Multi-monitor detection
-numpy>=1.24.0          # Numerical computations
-Pillow>=9.5.0          # Image processing
-torch>=2.0.0           # PyTorch for YOLO inference
+```mermaid
+flowchart LR
+    Camera -->|frames| Capture[Camera thread]
+    Capture --> Pose[Pose model: wrists and forearms]
+    Capture --> Cutout[Segmentation model: players cut out]
+    Pose --> Mapper[Camera-to-screen mapping]
+    Cutout --> Mapper
+    Mapper -->|blades over a local WebSocket| Browser[Game in full-screen Chrome]
+    Browser --> Projector
 ```
 
-### File Structure
+- **Camera facing the players** (default for the slash games): the camera sits
+  by the wall and looks at the kids, who play a few steps back, out of the
+  projector's beam. No calibration is needed, and the game shows the players
+  mirrored inside the scene.
+- **Camera facing the wall**: the camera watches the projected picture from
+  behind the players. The game projects markers so the camera can find the
+  picture's corners; press C to calibrate again.
+- Spooky Slash and Midnight Slash run in Chrome: a small Python server
+  (`modules/web_game_server.py`) serves the page and sends it blades. A theme
+  folder can sit over a base game, so `web/midnight_slash` holds only what
+  differs from `web/spooky_slash`.
+- The pygame games (Balloon Pop, Pong, Pumpkin Slash, Haunted Wall) draw
+  straight to the projector and split camera, detection, game and audio across
+  threads ([README_THREADING.md](README_THREADING.md)).
 
-```
-InteractiveProjector-CameraGame/
-├── assets/                       # Game assets (balloons, sounds, effects, backgrounds)
-├── models/                       # YOLO ONNX models (best.onnx)
-├── play.py                       # Game launcher: python3 play.py <game>
-├── games/                        # One file per game (spooky_slash, pumpkin_slash, halloween_pong,
-│                                 #   haunted_wall, haunted_wall_cc0, balloon_pop)
-├── web/spooky_slash/             # Spooky Slash's browser game (reskinned Fruit Ninja HTML5)
-├── tools/                        # Camera probe, diagnostics, asset and art generators
-├── tests/                        # Thread-safety tests and smoke checks
-├── modules/                      # Shared game modules
-│   ├── config.py                 # Central configuration
-│   ├── threaded_game_state.py    # Thread-safe coordination hub
-│   ├── camera_capture_thread.py  # Camera handling thread
-│   ├── yolo_inference_thread.py  # Object detection thread
-│   ├── audio_manager_thread.py   # Audio processing thread
-│   ├── calibration.py            # Camera-to-projector calibration
-│   ├── balloon.py                # Balloon entity and physics
-│   ├── effects.py                # Pop/miss visual effects
-│   ├── boom_animation.py         # Boom frame animation
-│   ├── cloud.py                  # Animated background clouds
-│   ├── pop_score.py              # Floating score popups
-│   └── background.py             # UI text helpers
-├── legacy/                       # Quarantined prototype/experimental modules
-├── datapreprocessing/            # Training data extraction tools
-├── requirements.txt              # Python dependencies
-├── README.md                     # This file
-└── README_THREADING.md           # Threading documentation
+## Quick start
+
+You need Python 3.11 or newer, a camera, a projector or second screen, and
+Google Chrome for the slash games. Development happens on macOS on Apple
+silicon; the pygame games also run on Windows and Linux.
+
+```bash
+git clone https://github.com/Puddin1066/InteractiveProjector-CameraGame.git
+cd InteractiveProjector-CameraGame
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+python3 play.py                                        # list the games
+python3 play.py midnight-slash --camera 1 --projector 1
 ```
 
-### Performance Specifications
+The camera and projector numbers are remembered in `.env`, so after the first
+time `python3 play.py midnight-slash` is enough. The models download on first
+run into `models/`.
 
-#### System Requirements
+## Commands
 
-| Component | Minimum | Recommended |
-|-----------|---------|-------------|
-| **CPU** | Intel i5-8000 / AMD Ryzen 5 2600 | Intel i7-10000+ / AMD Ryzen 7 3700X+ |
-| **RAM** | 8 GB | 16 GB+ |
-| **GPU** | Integrated Graphics | Dedicated GPU (GTX 1060+) |
-| **Camera** | 720p USB Webcam | 1080p Low-latency Camera |
-| **Display** | 1080p Monitor + Projector | 4K Monitor + High-res Projector |
+```bash
+python3 play.py                       # list the games
+python3 play.py <game> [options]      # start one; options after the name go to the game
+python3 -m tools.camera_probe         # list cameras (0 is a Mac's built-in camera; an iPhone is usually 1)
+python3 play.py spooky-slash --debug  # also save what the camera sees, with the blades drawn on
+python3 -m tools.make_midnight_slash_art     # rebuild Midnight Slash's images from art/midnight_slash
+python3 -m tools.make_midnight_slash_sounds  # download and encode its music and voices (needs ffmpeg)
+python3 -m tools.prepare_halloween_assets    # download Haunted Wall's CC0 art
+```
 
-#### Performance Metrics
-
-| Metric | Single-Threaded | Multi-Threaded | Improvement |
-|--------|-----------------|----------------|-------------|
-| **Game FPS** | 30-45 | 90 | **100%** |
-| **Input Latency** | 100-200ms | 10-20ms | **90%** |
-| **Frame Drops** | Frequent | Rare | **95%** |
-| **Audio Latency** | 50-100ms | <10ms | **90%** |
-| **CPU Usage** | 60-80% | 45-60% | **25%** |
+Spooky Slash and Midnight Slash take `--layout players|wall`,
+`--blades hands|shadows` (shadows need `--layout wall`) and `--debug`. Press
+Ctrl+C in the terminal to quit.
 
 ## Configuration
 
-### Camera Settings
+Settings come from `.env` (copy [.env.example](.env.example)) or the
+environment; defaults live in `modules/config.py`.
 
-```python
-# In modules/config.py
-CAMERA_INDEX = 1          # Camera device index
-CAMERA_WIDTH = 720        # Frame width
-CAMERA_HEIGHT = 480       # Frame height
-CAMERA_FPS = 30          # Capture framerate
+| Setting | Meaning |
+|---|---|
+| `CAMERA_INDEX` | Which camera to use (see `tools.camera_probe`) |
+| `PROJECTOR_MONITOR_INDEX` | Which screen is the projector (usually 1 on a laptop) |
+| `CAMERA_FACING` | `players` or `wall`: the default layout for the slash games |
+| `SENSOR_MODE`, `REOLINK_RTSP_URL` | Use an RTSP security camera instead ([IPHONE_SENSOR.md](IPHONE_SENSOR.md), [HAUNTED_WALL.md](HAUNTED_WALL.md)) |
+| `CAMERA_WIDTH`, `CAMERA_HEIGHT`, `CAMERA_FPS` | Capture size and rate |
+
+Keep real camera passwords in `.env` only; it is git-ignored.
+
+## Testing
+
+```bash
+python3 -m compileall -q play.py games modules tools tests datapreprocessing
+python3 tests/smoke_test_haunted_wall.py           # Haunted Wall entry points parse
+.venv/bin/python tests/test_threading.py           # thread-safe game state
+.venv/bin/python tests/mock_test_midnight_slash.py # MOCK: scripted swipes in headless Chrome
 ```
 
-### Game Settings
+The Midnight Slash test is a mock: no camera or projector. The real game
+server serves the page to headless Chrome, scripted swipes stand in for hands,
+and the game clock runs ten times faster. It plays a whole round and saves
+screenshots to the system's temporary folder. CI runs the compile and smoke
+checks on every pull request. Anything that changes what the camera sees still
+needs a try with a real camera and projector.
 
-```python
-# Core game parameters
-GAME_DURATION = 120       # Game length in seconds
-FPS = 90                  # Main game loop FPS
-CONF_THRESHOLD = 0.5      # YOLO confidence threshold
-IOU_THRESHOLD = 0.7       # YOLO IoU threshold
-CLICK_COOLDOWN = 0.5      # Seconds between clicks
-```
+## Balloon Pop, the original game
 
-### Threading Configuration
+Players pop projected balloons by pointing at them within a 120-second round,
+while the sky turns from day to night. Calibrate by clicking the four corners
+of the projected picture in the camera view.
 
-```python
-# Thread performance settings (in modules/config.py)
-FPS = 90                 # Main game loop FPS
-CAMERA_FPS = 30          # Camera capture FPS
+| Key | Action |
+|---|---|
+| C | Calibrate the camera again |
+| D | Show or hide the debug overlay |
+| R | Restart (on the game-over screen) |
+| Q or Esc | Quit |
 
-# YOLO inference runs on its own thread (auto-throttled)
-# Audio effects are queued for non-blocking playback
-```
+The mouse pops balloons too, for testing. Its four-thread design is described
+in [README_THREADING.md](README_THREADING.md):
+
+![Threading architecture](Threading_Architecture_Diagram.png)
 
 ## Troubleshooting
 
-### Common Issues
+- **Wrong camera, or no picture**: run `python3 -m tools.camera_probe`, then
+  start the game with `--camera N`. On macOS, allow camera access for your
+  terminal in System Settings > Privacy & Security > Camera.
+- **The game opens on the laptop screen**: pass `--projector N` (0 is the
+  laptop's own screen).
+- **Slashes miss**: check that the players' hands stay inside the camera view
+  and the room is lit. `--debug` saves frames showing what the camera sees.
+- **Calibration fails (wall layout)**: make sure the camera sees the whole
+  projected picture, then press C to try again.
+- **The game feels laggy**: a wired camera has less delay than a wireless one;
+  close other apps that use the GPU.
 
-#### Camera Not Detected
-```bash
-# Check available cameras
-python camera_index_check.py
+## Project layout
 
-# Verify camera permissions
-# Windows: Privacy Settings > Camera
-# Linux: Check /dev/video* permissions
-# macOS: System Preferences > Security & Privacy
+```text
+play.py              launcher: python3 play.py <game>
+games/               one file per game
+modules/             shared code: camera, models, calibration, screen mapping, game server
+web/spooky_slash/    Spooky Slash's browser game (a reskinned Fruit Ninja HTML5 engine)
+web/midnight_slash/  Midnight Slash: only the art, sounds and rules that differ from Spooky Slash
+art/midnight_slash/  source paintings for Midnight Slash's images
+assets/              Balloon Pop images and sounds
+tools/               camera probe, diagnostics, art and sound builders
+tests/               smoke, threading and mock tests
+datapreprocessing/   training-data tools for the balloon game's detector
+legacy/              old prototypes, kept for reference
 ```
 
-#### Poor Detection Performance
-```python
-# Adjust YOLO thresholds in config.py
-CONF_THRESHOLD = 0.3     # Lower for more sensitive detection
-IOU_THRESHOLD = 0.5      # Adjust overlap threshold
+## Status and releases
 
-# Check lighting conditions
-# Ensure good contrast between hand/object and background
-```
+Active hobby project, run from source: there are no packaged releases or
+versions, and `main` is always the version to use. Changes arrive through pull
+requests.
 
-#### Low FPS/Performance
-```bash
-# Check system resources
-# Task Manager (Windows) / htop (Linux) / Activity Monitor (macOS)
+## Contributing, support and security
 
-# Enable debug overlay
-# Press 'D' in-game to monitor thread performance
+- [CONTRIBUTING.md](CONTRIBUTING.md): setup, checks and how to add a game.
+- [SUPPORT.md](SUPPORT.md): where to ask for help or suggest a game.
+- [SECURITY.md](SECURITY.md): report security problems privately.
+- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md): Contributor Covenant 2.1.
 
-# Reduce resolution or FPS if needed
-CAMERA_WIDTH = 640
-CAMERA_HEIGHT = 360
-```
+## License
 
-#### Calibration Issues
-```bash
-# Recalibrate camera
-# Press 'C' during gameplay
-# Ensure all 4 corners are clearly visible
-# Use high-contrast markers for better detection
-```
-
-### Debug Features
-
-| Key | Function | Description |
-|-----|----------|-------------|
-| **D** | Debug Overlay | Shows thread FPS, queue sizes, performance metrics |
-| **C** | Recalibrate | Restart camera calibration process |
-| **Q** | Quit | Exit application |
-| **ESC** | Exit | Alternative quit method |
-
-### Log Analysis
-
-```python
-# Enable detailed logging
-logging.basicConfig(level=logging.DEBUG)
-
-# Check common log files
-logs/
-├── camera.log          # Camera capture issues
-├── yolo.log           # Detection problems  
-├── audio.log          # Sound system errors
-└── performance.log    # FPS and timing data
-```
-
-## Contributing
-
-We welcome contributions! Here's how to get started:
-
-### Development Setup
-
-1. **Fork the repository**
-2. **Create a feature branch**
-   ```bash
-   git checkout -b feature/amazing-feature
-   ```
-3. **Install development dependencies**
-   ```bash
-   pip install -r requirements-dev.txt
-   ```
-4. **Make your changes**
-5. **Run tests**
-   ```bash
-   python3 tests/test_threading.py
-   ```
-6. **Submit a pull request**
-
-### Contribution Guidelines
-
-- **Code Style**: Follow PEP 8 standards
-- **Documentation**: Update README and docstrings
-- **Testing**: Add tests for new features
-- **Performance**: Profile changes for performance impact
-- **Threading**: Ensure thread safety for concurrent code
-
-### Areas for Contribution
-
-- **New Game Modes**: Different interaction patterns
-- **AI Improvements**: Better detection models
-- **Visual Effects**: Enhanced graphics and animations
-- **Audio Features**: Background music, spatial audio
-- **Mobile Support**: Android/iOS compatibility
-- **Networking**: Multiplayer functionality
-
-## Performance Analysis
-
-### Threading Benefits Visualization
-
-```
-Single-Threaded Timeline:
-Camera ████████
-YOLO   ████████
-Game   ████████  (Sequential - 30 FPS max)
-Audio  ████████
-
-Multi-Threaded Timeline:
-Camera ████████████████████████████████████████
-YOLO   ████████████████████████████████████████
-Game   ████████████████████████████████████████  (Parallel - 90 FPS)
-Audio  ████████████████████████████████████████
-```
-
-### Resource Usage Comparison
-
-| Resource | Single-Threaded | Multi-Threaded | Optimization |
-|----------|-----------------|----------------|--------------|
-| **CPU Cores** | 1-2 cores | 3-4 cores | Better utilization |
-| **Memory** | 300-400 MB | 400-500 MB | Efficient buffering |
-| **GPU** | Minimal | Optimized | Hardware acceleration |
-| **I/O** | Blocking | Non-blocking | Async operations |
+This project's own code and art are under the [MIT license](LICENSE). Some
+parts come from others and keep their own terms; see
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Notably, the Fruit Ninja
+engine under `web/spooky_slash` has no upstream license and is not covered by
+MIT, and Ultralytics YOLO, installed as a dependency, is AGPL-3.0.
 
 ## Authors
 
-- **Jitenrai21** - *Initial work and architecture* - [GitHub](https://github.com/Jitenrai21)
+- **Jiten Rai** ([@Jitenrai21](https://github.com/Jitenrai21)): the original
+  Balloon Pop game and its threaded architecture
+  ([original repository](https://github.com/Jitenrai21/InteractiveProjector-CameraGame)).
+- **John Round** ([@Puddin1066](https://github.com/Puddin1066)): the
+  Halloween games, the launcher and camera-facing play.
 
-## Acknowledgments
-
-- **Ultralytics** for the excellent YOLO implementation
-- **OpenCV** community for computer vision tools
-- **Pygame** developers for the game engine
-- **Contributors** who helped improve the project
-
-## Support
-
-### Getting Help
-
-- **Documentation**: Check this README and `README_THREADING.md`
-- **Issues**: [GitHub Issues](https://github.com/Jitenrai21/InteractiveProjector-CameraGame/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/Jitenrai21/InteractiveProjector-CameraGame/discussions)
-
----
-
-**Made with passion for interactive computing and computer vision enthusiasts**
-
-**Star this repository if you found it helpful!**
+Thanks to Ultralytics, OpenCV, pygame, MediaPipe and the Baidu JS team's
+Fruit Ninja.

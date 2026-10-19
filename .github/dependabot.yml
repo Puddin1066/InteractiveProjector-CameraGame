@@ -1,0 +1,12 @@
+version: 2
+updates:
+  # Python packages are left out on purpose: torch, ultralytics and mediapipe
+  # updates need a real camera test, not an automatic pull request.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
