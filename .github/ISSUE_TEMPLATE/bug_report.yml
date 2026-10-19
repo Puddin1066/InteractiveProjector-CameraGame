@@ -1,0 +1,44 @@
+name: Bug report
+description: Something in a game or the setup does not work
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: dropdown
+    id: game
+    attributes:
+      label: Game
+      options:
+        - spooky-slash
+        - midnight-slash
+        - pumpkin-slash
+        - pong
+        - haunted-wall
+        - balloon-pop
+        - setup / launcher
+    validations:
+      required: true
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened?
+      description: What you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: The command you ran (for example `python3 play.py spooky-slash --camera 1`) and what you did.
+    validations:
+      required: true
+  - type: textarea
+    id: setup
+    attributes:
+      label: Setup
+      description: >
+        Operating system, camera (and what `python3 -m tools.camera_probe` prints),
+        projector, where the camera faces (players or wall), and any error output.
+      render: text
+    validations:
+      required: true

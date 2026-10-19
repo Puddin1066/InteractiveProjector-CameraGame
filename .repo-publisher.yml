@@ -1,0 +1,66 @@
+version: 1
+mode: existing-repo
+profile: public-oss
+owner: Puddin1066
+repo: InteractiveProjector-CameraGame
+visibility: public
+default_branch: main
+description: Hands-on party games for a projector and a camera; kids slash, pop and tag with their hands, no controllers.
+homepage: ""
+topics: [computer-vision, projector, projection-mapping, interactive-games, pose-estimation, yolo, opencv, pygame, halloween, fruit-ninja, python, kids]
+license: MIT
+gitignore_template: ""
+upstream: Jitenrai21/InteractiveProjector-CameraGame  # this repo is a fork
+maintainers:
+  owner_team: ""
+  technical_owner: "@Puddin1066"
+  business_owner: ""
+contacts:
+  support: GitHub issues (see SUPPORT.md)
+  security: GitHub private vulnerability reporting (see SECURITY.md)
+data:
+  classification: public code; camera frames of children never leave the machine
+  production_write_paths: []
+  secrets_location: "Local, git-ignored .env only; never commit camera credentials."
+features:
+  issues: true
+  wiki: false
+  discussions: false
+  projects: false
+hardening:
+  ruleset: light
+  codeowners_required: false
+  dependabot: true  # GitHub Actions only; Python packages need a real camera test
+  codeql: false
+  scorecard: false
+release:
+  strategy: none  # run from main
+  initial_tag: ""
+  current_tag: ""
+  version_scheme: semver
+  version_file: ""
+  changelog_file: ""
+  release_workflow: ""
+  artifact_expectations: []
+  draft_required: true
+repo_polish:
+  maintenance_status: active
+  support_channel: GitHub issues
+  security_contact: GitHub private vulnerability reporting
+  governance_model: maintainer-led
+  screenshots_required: true
+  demo_media_required: false
+  social_preview_required: false
+  citation_required: false
+  funding_required: false
+  releases_required: false
+  changelog_style: none
+  badge_policy: profile-default
+  issue_policy:
+    blank_issues_enabled: false
+    security_reports_external: true
+skips:
+  releases: hobby project run from source; no versions to pin
+  codeql: small hobby project; revisit if outside contributions grow
+  codeowners_required_review: single maintainer; requiring review would block merges
+  third_party_license: web/spooky_slash Fruit Ninja engine has no upstream license; kept with a notice by the owner's decision
