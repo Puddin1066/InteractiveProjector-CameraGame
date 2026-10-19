@@ -2,7 +2,7 @@
 
 The polished Haunted Wall theme uses a small set of third-party assets that are
 **CC0 / public domain**. They are downloaded locally by
-`prepare_halloween_assets.py`; the repository does not depend on paid or
+`tools/prepare_halloween_assets.py`; the repository does not depend on paid or
 attribution-restricted artwork.
 
 ## Graveyard background layers
@@ -25,8 +25,8 @@ attribution-restricted artwork.
 
 ## Runtime behavior
 
-`python launch_haunted_wall_macos.py` checks whether the visual assets are
-present. If they are missing it calls `prepare_halloween_assets.py`. If the
+`python3 -m tools.launch_haunted_wall_macos` checks whether the visual assets are
+present. If they are missing it calls `tools/prepare_halloween_assets.py`. If the
 download fails (for example the Mac is offline), Haunted Wall still starts with
 the original procedural moon/fog/ghost rendering.
 

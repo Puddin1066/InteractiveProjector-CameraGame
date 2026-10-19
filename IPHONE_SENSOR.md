@@ -6,10 +6,10 @@ The interactive platform uses the Mac’s built-in camera. That is OpenCV index 
 export SENSOR_MODE=local
 export CAMERA_INDEX=0
 export PROJECTOR_MONITOR_INDEX=1
-python haunted_wall.py
+python3 play.py haunted-wall
 ```
 
-`python launch_haunted_wall_macos.py` selects that same built-in camera. Point the laptop so the FaceTime camera sees the whole image on the MoGo 4, then click the four corners of that image in the camera window and press `c`.
+`python3 -m tools.launch_haunted_wall_macos` selects that same built-in camera. Point the laptop so the FaceTime camera sees the whole image on the MoGo 4, then click the four corners of that image in the camera window and press `c`.
 
 An iPhone 14 can still be the sensor through Continuity Camera when the laptop camera cannot see the wall. That setup is below. It adds a wireless hop, so it is the fallback rather than the default.
 
@@ -31,15 +31,15 @@ The Mac runs OpenCV/YOLO, calibration, collision logic, and Pygame. The projecto
 4. Run:
 
 ```bash
-python launch_haunted_wall_macos.py
+python3 -m tools.launch_haunted_wall_macos
 ```
 
 The launcher probes local OpenCV camera indices, chooses a usable local camera, verifies an external display, sets `SENSOR_MODE=local`, and launches Haunted Wall.
 
-If the Mac's built-in camera is selected instead of the iPhone, run `python camera_probe.py`, note the iPhone index, then launch with:
+If the Mac's built-in camera is selected instead of the iPhone, run `python3 -m tools.camera_probe`, note the iPhone index, then launch with:
 
 ```bash
-CAMERA_INDEX=<IPHONE_INDEX> python launch_haunted_wall_macos.py
+CAMERA_INDEX=<IPHONE_INDEX> python3 -m tools.launch_haunted_wall_macos
 ```
 
 ## macOS / Continuity Camera
@@ -49,7 +49,7 @@ Make sure Continuity Camera is enabled and that macOS allows camera access for T
 A wired iPhone may still need Apple's Continuity Camera prerequisites to be satisfied before macOS exposes it as a camera device. If OpenCV does not see it, first verify that another Mac camera app can select the iPhone, then rerun:
 
 ```bash
-python camera_probe.py
+python3 -m tools.camera_probe
 ```
 
 ## Manual setup
@@ -65,15 +65,15 @@ export CAMERA_WIDTH=1280
 export CAMERA_HEIGHT=720
 export CAMERA_FPS=30
 export PROJECTOR_MONITOR_INDEX=1
-python reolink_diagnostic.py
+python3 -m tools.reolink_diagnostic
 ```
 
-Despite its historical filename, `reolink_diagnostic.py` uses the generic `VideoSource` adapter and therefore also validates the selected iPhone/local camera.
+Despite its historical filename, `tools/reolink_diagnostic.py` uses the generic `VideoSource` adapter and therefore also validates the selected iPhone/local camera.
 
 If the diagnostic looks good, run:
 
 ```bash
-python haunted_wall.py
+python3 play.py haunted-wall
 ```
 
 Complete the four-corner calibration, then leave both the iPhone and projector fixed in position.

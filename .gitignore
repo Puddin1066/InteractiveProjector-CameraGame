@@ -2,8 +2,14 @@
 .env.local
 .venv/
 .DS_Store
+__pycache__/
 *.mp4
 *.pt
 frames/
 models/
 haunted_wall_calibration.json
+
+calibration.json
+assets/halloween_cc0/
+# Fruit Ninja-based browser games: upstream has no license, so they stay local
+web/

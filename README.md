@@ -79,14 +79,21 @@ The application uses a **4-thread architecture** for optimal performance:
    # If missing, train your own or use a pre-trained model
    ```
 
-4. **Run the application**
+4. **Play**
    ```bash
-   # Threaded version (recommended)
-   python main_threaded.py
-   
-   # Original single-threaded version
-   python main_using_model(onClick)_myVersion.py
+   python3 play.py                 # list the games
+   python3 play.py spooky-slash    # start one
+   python3 play.py midnight-slash  # the spookier version: 3-minute team rounds that speed up
    ```
+   Midnight Slash is a theme over Spooky Slash: `web/midnight_slash` holds only what differs (art, sounds, round
+   rules) and everything else comes from `web/spooky_slash`. Rebuild its art and sounds with
+   `python -m tools.make_midnight_slash_art` and `python -m tools.make_midnight_slash_sounds`, and check it without a
+   camera with `python tests/mock_test_midnight_slash.py` (a mock: scripted swipes, headless Chrome).
+   The first time, say which camera and projector to use; they are remembered in `.env`:
+   ```bash
+   python3 play.py spooky-slash --camera 1 --projector 1
+   ```
+   `python3 -m tools.camera_probe` lists the cameras (0 is the Mac's built-in camera; an iPhone is usually 1).
 
 ### First-Time Setup
 
@@ -141,7 +148,13 @@ torch>=2.0.0           # PyTorch for YOLO inference
 InteractiveProjector-CameraGame/
 ├── assets/                       # Game assets (balloons, sounds, effects, backgrounds)
 ├── models/                       # YOLO ONNX models (best.onnx)
-├── modules/                      # Core game modules
+├── play.py                       # Game launcher: python3 play.py <game>
+├── games/                        # One file per game (spooky_slash, pumpkin_slash, halloween_pong,
+│                                 #   haunted_wall, haunted_wall_cc0, balloon_pop)
+├── web/spooky_slash/             # Spooky Slash's browser game (reskinned Fruit Ninja HTML5)
+├── tools/                        # Camera probe, diagnostics, asset and art generators
+├── tests/                        # Thread-safety tests and smoke checks
+├── modules/                      # Shared game modules
 │   ├── config.py                 # Central configuration
 │   ├── threaded_game_state.py    # Thread-safe coordination hub
 │   ├── camera_capture_thread.py  # Camera handling thread
@@ -156,9 +169,6 @@ InteractiveProjector-CameraGame/
 │   └── background.py             # UI text helpers
 ├── legacy/                       # Quarantined prototype/experimental modules
 ├── datapreprocessing/            # Training data extraction tools
-├── main_threaded.py              # Main threaded application
-├── main_using_model(onClick)_myVersion.py  # Original single-threaded version
-├── test_threading.py             # Thread-safety tests + performance benchmarks
 ├── requirements.txt              # Python dependencies
 ├── README.md                     # This file
 └── README_THREADING.md           # Threading documentation
@@ -307,7 +317,7 @@ We welcome contributions! Here's how to get started:
 4. **Make your changes**
 5. **Run tests**
    ```bash
-   python test_threading.py
+   python3 tests/test_threading.py
    ```
 6. **Submit a pull request**
 

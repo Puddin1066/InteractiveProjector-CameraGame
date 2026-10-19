@@ -18,15 +18,29 @@ import cv2
 VideoInput = Union[int, str]
 
 
-def open_local_capture(camera_index: int) -> cv2.VideoCapture:
+def open_local_capture(
+    camera_index: int,
+    width: Optional[int] = None,
+    height: Optional[int] = None,
+    fps: Optional[int] = None,
+) -> cv2.VideoCapture:
     """Open a local camera with the backend that machine actually has.
 
     The Mac built-in camera is an AVFoundation device. DirectShow exists only
     on Windows, so forcing it hides the Mac camera from OpenCV.
     """
     if platform.system() == "Windows":
-        return cv2.VideoCapture(camera_index, cv2.CAP_DSHOW)
-    return cv2.VideoCapture(camera_index)
+        cap = cv2.VideoCapture(camera_index, cv2.CAP_DSHOW)
+    else:
+        cap = cv2.VideoCapture(camera_index)
+    if cap.isOpened():
+        if width:
+            cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
+        if height:
+            cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
+        if fps:
+            cap.set(cv2.CAP_PROP_FPS, fps)
+    return cap
 
 
 @dataclass

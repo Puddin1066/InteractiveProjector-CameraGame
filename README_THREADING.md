@@ -54,7 +54,7 @@ All threads communicate through a centralized `ThreadSafeGameState` manager that
 - Priority-based playback management
 - Preloaded sound effects for efficiency
 
-### 5. Main Threaded Game (`main_threaded.py`)
+### 5. Main Threaded Game (`games/balloon_pop.py`)
 - Orchestrates all threads and handles coordination
 - Enhanced game loop with thread communication
 - Debug overlay for performance monitoring
@@ -93,10 +93,10 @@ All threads communicate through a centralized `ThreadSafeGameState` manager that
 pip install -r requirements.txt
 
 # Run threaded version
-python main_threaded.py
+python3 play.py balloon-pop
 
 # Run original version (for comparison)
-python main_using_model(onClick)_myVersion.py
+python3 legacy/main_using_model(onClick)_myVersion.py
 ```
 
 ### Debug Features
@@ -189,9 +189,9 @@ modules/
 ├── pop_score.py                # Floating score popups
 └── background.py               # UI text helpers
 
-main_threaded.py                # New threaded main application
-main_using_model(onClick)_myVersion.py  # Original single-threaded version
-test_threading.py               # Thread-safety tests + performance benchmarks
+games/balloon_pop.py            # New threaded main application (python3 play.py balloon-pop)
+legacy/main_using_model(onClick)_myVersion.py  # Original single-threaded version
+tests/test_threading.py         # Thread-safety tests + performance benchmarks
 legacy/                         # Quarantined prototype/experimental modules
 requirements.txt                # Updated dependencies
 README_THREADING.md            # This documentation
@@ -201,7 +201,7 @@ README_THREADING.md            # This documentation
 
 ### From Single-Threaded to Multi-Threaded
 
-1. **Replace main file**: Use `main_threaded.py` instead of original
+1. **Replace main file**: Use `games/balloon_pop.py` instead of original
 2. **Update imports**: New threading modules are imported automatically
 3. **Configuration**: Adjust thread settings if needed
 4. **Testing**: Compare performance between versions
